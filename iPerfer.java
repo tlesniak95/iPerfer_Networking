@@ -1,4 +1,6 @@
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
 /*
@@ -33,6 +35,52 @@ public class iPerfer {
             runClient(hostname, port, time);
 
         }
+        else if(args[0].equals("-s")) {
+            //server mode
+            if(args.length != 3){
+                System.out.println("Error: missing or additional arguments");
+                System.exit(1);
+            }
+            int serverPort = Integer.parseInt(args[2]);
+            //check port number is in the range 1024 to 65535
+            if(serverPort < 1024 || serverPort > 65535) {
+                System.out.println("Error: port number must be in the range 1024 to 65535");
+                System.exit(1);
+            }
+
+            try (
+                ServerSocket serverSocket = new ServerSocket(serverPort)) {
+
+                    try (Socket clientSocket = serverSocket.accept();
+                        InputStream inputStream = clientSocket.getInputStream()) {
+
+                    byte[] buffer = new byte[1000];
+                    int bytesRead;
+                    long totalBytesReceived = 0;
+                    long startTime = System.currentTimeMillis();
+
+                    while((bytesRead = inputStream.read(buffer)) != -1) {
+                        totalBytesReceived += bytesRead;
+                    }
+
+                    long endTime = System.currentTimeMillis();
+                    double durationInSeconds = (endTime - startTime) / 1000;
+                    double rate = (totalBytesReceived * 8) / (1000.0 * 1000.0 *durationInSeconds);
+
+                    // Print the total number of bytes received and the rate
+                    System.out.printf("received=%d KB rate=%.3f Mbps\n", totalBytesReceived / 1000, rate);
+                        
+
+
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+
+            
+
+        }
 }
 
 
@@ -54,7 +102,7 @@ private static void runClient(String hostname, int port, int time) {
 
             double rate = (totalBytesSent * 8) / (time * 1000.0 * 1000.0); //rate in Megabits per second
 
-            System.out.printf("sent=%d KB %.3f Mbps\n", totalBytesSent / 1000, rate);
+            System.out.printf("sent=%d KB rate=%.3f Mbps\n", totalBytesSent / 1000, rate);
         }
 
     catch (Exception e) {
